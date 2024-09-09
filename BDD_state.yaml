@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mariadb
+  namespace: projet-devops-2023
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mariadb
+  template:
+    metadata:
+      labels:
+        app: mariadb
+    spec:
+      containers:
+        - name: mariadb
+          image: boudun/mariadb:latest
+          env:
+            - name: MARIADB_ROOT_PASSWORD
+              value: yourRootPassword
+            - name: MARIADB_USER
+              value: wordpressUser
+            - name: MARIADB_DATABASE
+              value: wordpress
+            - name: MARIADB_PASSWORD
+              value: securepassword
+          ports:
+            - containerPort: 3306
+              name: mariadb
+          volumeMounts:
+            - name: mariadb-data
+              mountPath: /var/lib/mysql
+  serviceName: mariadb-service
+  volumeClaimTemplates:
+    - metadata :
+        name: mariadb-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi

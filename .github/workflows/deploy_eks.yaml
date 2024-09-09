@@ -1,0 +1,43 @@
+name: Deploy to EKS
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  AWS_REGION: eu-west-3
+  EKS_CLUSTER_NAME: ${{ vars.CLUSTER_NAME }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{env.AWS_REGION}}
+
+      - name: Update kube config
+        run: aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
+
+      - name: Vérifier si le namespace "projet-devops-2023" existe
+        run: kubectl get namespace projet-devops-2023 -o json | jq '.metadata.name' | tee /tmp/namespace_count.txt
+        if: ${{ always() }}
+
+      - name: Créer le namespace "projet-devops-2023" si inexistant
+        run: kubectl create namespace projet-devops-2023
+        if: steps.Verify_Namespace_Exists.outputs.exitCode != 0
+
+#      - name: Supprimer la configuration Kubernetes existante (si présente)
+#        run: kubectl delete -f ./ -n projet-devops-2023
+#        if: steps.Verify_Namespace_Exists.outputs.exitCode == 0
+
+      - name: Deploy to EKS
+        run:
+          kubectl apply -f ./
